@@ -43,10 +43,6 @@ import static spark.Spark.setPort;
  */
 public class EntryPoint
 {
-
-    //Constantes
-    private static final String SESSION_NAME = "username";
-
     //Dao
     private static Dao<Usuario, String> usuarioDao;
     private static Dao<SistemaOperativo, String> sistemaOperativoDao;
@@ -310,9 +306,10 @@ public class EntryPoint
             @Override
             public Object handle(Request rqst, Response rspns)
             {
-                String nombreUsuario = rqst.queryParams("admin");
+                String userLogged = rqst.queryParams("usernameLogged");
+                String nombreUsuario = rqst.queryParams("usernameToDelete");
 
-                if (nombreUsuario != null && nombreUsuario.equals("admin"))
+                if (userLogged!=null && !userLogged.equals("") && nombreUsuario != null && !userLogged.equals("") && userLogged.equals("admin"))
                 {
                     try
                     {
