@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.simple.JSONValue;
 import spark.Filter;
 import spark.Request;
 import spark.Response;
@@ -229,7 +230,6 @@ public class EntryPoint
                         Usuario usuario = usuarioDao.queryForId(username);
                         if (usuario.getPassword().equals(password))
                         {
-                            rqst.session().attribute(SESSION_NAME, username);
                             return true;
                         }
                     } catch (SQLException ex)
@@ -243,20 +243,6 @@ public class EntryPoint
                 }
 
                 return false;
-            }
-
-        });
-
-        //Cerrar sesión
-        get(new Route("/logout")
-        {
-
-            @Override
-            public Object handle(Request rqst, Response rspns)
-            {
-                rqst.session().removeAttribute(SESSION_NAME);
-
-                return null;
             }
 
         });
@@ -290,35 +276,26 @@ public class EntryPoint
             public Object handle(Request rqst, Response rspns)
             {
 
-                String username = rqst.session().attribute(SESSION_NAME);
-
-                if (username != null && !username.equals(""))
+                try
                 {
-                    try
-                    {
-                        //Obtener parámetros
-                        String nombreMaquina = rqst.queryParams("nombreMaquina");
-                        String nombreSO = rqst.queryParams("nombreSO");
+                    //Obtener parámetros
+                    String username = rqst.queryParams("username");
+                    String nombreMaquina = rqst.queryParams("nombreMaquina");
+                    String nombreSO = rqst.queryParams("nombreSO");
 
-                        //Crear máquina virtual
-                        MaquinaVirtual maquinaVirtual = new MaquinaVirtual();
-                        maquinaVirtual.setNombre(nombreMaquina);
-                        maquinaVirtual.setSistemaOperativo(sistemaOperativoDao.queryForId(nombreSO));
-                        maquinaVirtual.setUsername(usuarioDao.queryForId(username));
+                    //Crear máquina virtual
+                    MaquinaVirtual maquinaVirtual = new MaquinaVirtual();
+                    maquinaVirtual.setNombre(nombreMaquina);
+                    maquinaVirtual.setSistemaOperativo(sistemaOperativoDao.queryForId(nombreSO));
+                    maquinaVirtual.setUsername(usuarioDao.queryForId(username));
 
-                        maquinaVirtualDao.create(maquinaVirtual);
+                    maquinaVirtualDao.create(maquinaVirtual);
 
-                        return true;
+                    return true;
 
-                    } catch (SQLException ex)
-                    {
-                        System.out.println("Error creando la máquina virtual");
-                        return false;
-                    }
-                } else
+                } catch (SQLException ex)
                 {
-                    System.out.println("Error con la autenticación del usuario");
-
+                    System.out.println("Error creando la máquina virtual");
                     return false;
                 }
 
@@ -333,7 +310,7 @@ public class EntryPoint
             @Override
             public Object handle(Request rqst, Response rspns)
             {
-                String nombreUsuario = rqst.session().attribute(SESSION_NAME);
+                String nombreUsuario = rqst.queryParams("admin");
 
                 if (nombreUsuario != null && nombreUsuario.equals("admin"))
                 {
@@ -375,7 +352,7 @@ public class EntryPoint
             @Override
             public Object handle(Request rqst, Response rspns)
             {
-                String username = rqst.session().attribute(SESSION_NAME);
+                String username = rqst.queryParams("username");
 
                 if (username != null && !username.equals(""))
                 {
@@ -396,7 +373,7 @@ public class EntryPoint
                         System.out.println("Error consultando las máquinas del usuario");
                     }
 
-                    return maquinas.toString();
+                    return JSONValue.toJSONString(maquinas);
                 } else
                 {
                     return null;
