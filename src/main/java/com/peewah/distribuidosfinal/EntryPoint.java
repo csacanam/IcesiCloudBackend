@@ -125,169 +125,132 @@ public class EntryPoint
         spark.SparkBase.port(puerto);
 
         //5. Habilitar Cross-origin resource sharing (CORS)
-        options("/*",new Route()
+        options("/*", (Request rqst, Response rspns) ->
         {
-
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            String accessControlRequestHeaders = rqst.headers("Access-Control-Request-Headers");
+            if (accessControlRequestHeaders != null)
             {
-                String accessControlRequestHeaders = rqst.headers("Access-Control-Request-Headers");
-                if (accessControlRequestHeaders != null)
-                {
-                    rspns.header("Access-Control-Allow-Headers", accessControlRequestHeaders);
-                }
-
-                String accessControlRequestMethod = rqst.headers("Access-Control-Request-Method");
-                if (accessControlRequestMethod != null)
-                {
-                    rspns.header("Access-Control-Allow-Methods", accessControlRequestMethod);
-                }
-                return "OK";
-
+                rspns.header("Access-Control-Allow-Headers", accessControlRequestHeaders);
             }
 
+            String accessControlRequestMethod = rqst.headers("Access-Control-Request-Method");
+            if (accessControlRequestMethod != null)
+            {
+                rspns.header("Access-Control-Allow-Methods", accessControlRequestMethod);
+            }
+            return "OK";
         });
 
-        before(new Filter()
+        before((Request rqst, Response rspns) ->
         {
-
-            @Override
-            public void handle(Request rqst, Response rspns)
-            {
-                rspns.header("Access-Control-Allow-Origin", "*");
-
-            }
+            rspns.header("Access-Control-Allow-Origin", "*");
         });
 
-        after(new Filter()
+        after((Request rqst, Response rspns) ->
         {
-
-            @Override
-            public void handle(Request rqst, Response rspns)
-            {
-                rspns.type("application/json");
-            }
+            rspns.type("application/json");
         });
 
         //6. Web services
         //Crear usuario
-        post("/new-user", new Route()
+        post("/new-user", (Request rqst, Response rspns) ->
         {
+            //Obtener datos como parámetros
+            String nombre = rqst.queryParams("name");
+            String username = rqst.queryParams("username");
+            String password = rqst.queryParams("password");
 
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            //Validar si no hay datos vacíos
+            if (nombre != null && !nombre.equals("") && username != null && !username.equals("") && password != null && !password.equals(""))
             {
+                //Crear objeto usuario
+                Usuario usuario = new Usuario();
+                usuario.setNombre(nombre);
+                usuario.setPassword(password);
+                usuario.setUsername(username);
 
-                //Obtener datos como parámetros
-                String nombre = rqst.queryParams("name");
-                String username = rqst.queryParams("username");
-                String password = rqst.queryParams("password");
-
-                //Validar si no hay datos vacíos
-                if (nombre != null && !nombre.equals("") && username != null && !username.equals("") && password != null && !password.equals(""))
+                //Crear objeto en base de datos
+                try
                 {
-                    //Crear objeto usuario
-                    Usuario usuario = new Usuario();
-                    usuario.setNombre(nombre);
-                    usuario.setPassword(password);
-                    usuario.setUsername(username);
-
-                    //Crear objeto en base de datos
-                    try
-                    {
-                        usuarioDao.create(usuario);
-                    } catch (SQLException ex)
-                    {
-                        System.out.println("Error creando el usuario");
-                        return false;
-                    }
-
-                } else
+                    usuarioDao.create(usuario);
+                } catch (SQLException ex)
                 {
-                    System.out.println("No debes dejar campos vacíos");
+                    System.out.println("Error creando el usuario");
                     return false;
                 }
 
-                System.out.println("Usuario creado");
-                return true;
-            }
-
-        });
-
-        //Autenticar usuario
-        post("/auth-user", new Route()
-        {
-
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            } else
             {
-                //Obtener datos como parámetros
-                String username = rqst.queryParams("username");
-                String password = rqst.queryParams("password");
-
-                //Validar si no hay datos vacíos
-                if (username != null && !username.equals("") && password != null && !password.equals(""))
-                {
-
-                    //Validar la dupla usuario-password
-                    try
-                    {
-                        Usuario usuario = usuarioDao.queryForId(username);
-                        if (usuario.getPassword().equals(password))
-                        {
-                            return true;
-                        }
-                    } catch (SQLException ex)
-                    {
-                        return false;
-                    }
-
-                } else
-                {
-                    return false;
-                }
-
+                System.out.println("No debes dejar campos vacíos");
                 return false;
             }
 
+            System.out.println("Usuario creado");
+            return true;
+        });
+
+        //Autenticar usuario
+        post("/auth-user", (Request rqst, Response rspns) ->
+        {
+            //Obtener datos como parámetros
+            String username = rqst.queryParams("username");
+            String password = rqst.queryParams("password");
+
+            //Validar si no hay datos vacíos
+            if (username != null && !username.equals("") && password != null && !password.equals(""))
+            {
+
+                //Validar la dupla usuario-password
+                try
+                {
+                    Usuario usuario = usuarioDao.queryForId(username);
+                    if (usuario.getPassword().equals(password))
+                    {
+                        return true;
+                    }
+                } catch (SQLException ex)
+                {
+                    return false;
+                }
+
+            } else
+            {
+                return false;
+            }
+
+            return false;
         });
 
         //Listar sistemas operativos disponibles
-        get("/list-so", new Route()
+        get("/list-so", (Request rqst, Response rspns) ->
         {
-
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            List<SistemaOperativo> sistemasOperativos = new ArrayList<>();
+            try
             {
-                List<SistemaOperativo> sistemasOperativos = new ArrayList<>();
-                try
-                {
-                    sistemasOperativos = sistemaOperativoDao.queryForAll();
-                } catch (SQLException ex)
-                {
-                    System.out.println("Error listando los sistemas operativos");
-                }
-
-                return sistemasOperativos;
+                sistemasOperativos = sistemaOperativoDao.queryForAll();
+            } catch (SQLException ex)
+            {
+                System.out.println("Error listando los sistemas operativos");
             }
 
-        });
+            return sistemasOperativos;
+        }, new JsonTransformer());
 
         //Crear máquina virtual
-        post("/create-machine", new Route()
+        post("/create-machine", (Request rqst, Response rspns) ->
         {
-
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            try
             {
+                //Obtener parámetros
+                String username = rqst.queryParams("username");
+                String nombreMaquina = rqst.queryParams("nombreMaquina");
+                String nombreSO = rqst.queryParams("nombreSO");
 
-                try
+                Usuario user = usuarioDao.queryForId(username);
+                SistemaOperativo so = sistemaOperativoDao.queryForId(nombreSO);
+
+                if (user != null && so != null)
                 {
-                    //Obtener parámetros
-                    String username = rqst.queryParams("username");
-                    String nombreMaquina = rqst.queryParams("nombreMaquina");
-                    String nombreSO = rqst.queryParams("nombreSO");
-
                     //Crear máquina virtual
                     MaquinaVirtual maquinaVirtual = new MaquinaVirtual();
                     maquinaVirtual.setNombre(nombreMaquina);
@@ -297,151 +260,140 @@ public class EntryPoint
                     maquinaVirtualDao.create(maquinaVirtual);
 
                     return true;
-
-                } catch (SQLException ex)
+                }
+                else
                 {
-                    System.out.println("Error creando la máquina virtual");
                     return false;
                 }
 
+            } catch (SQLException ex)
+            {
+                System.out.println("Error creando la máquina virtual");
+                return false;
             }
-
         });
 
         //Eliminar usuario y sus máquinas virtuales asociadas
-        delete("/delete-user", new Route()
+        delete("/delete-user", (Request rqst, Response rspns) ->
         {
+            String userLogged = rqst.queryParams("usernameLogged");
+            String nombreUsuario = rqst.queryParams("usernameToDelete");
 
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            if (userLogged != null && !userLogged.equals("") && nombreUsuario != null && !userLogged.equals("") && userLogged.equals("admin"))
             {
-                String userLogged = rqst.queryParams("usernameLogged");
-                String nombreUsuario = rqst.queryParams("usernameToDelete");
-
-                if (userLogged != null && !userLogged.equals("") && nombreUsuario != null && !userLogged.equals("") && userLogged.equals("admin"))
+                try
                 {
-                    try
+                    Usuario user = usuarioDao.queryForId(nombreUsuario);
+
+                    //Eliminar máquinas virtuales del usuario
+                    Collection<MaquinaVirtual> maquinasUsuario = user.getMaquinasVirtuales();
+                    for (MaquinaVirtual maquina : maquinasUsuario)
                     {
-                        Usuario user = usuarioDao.queryForId(nombreUsuario);
-
-                        //Eliminar máquinas virtuales del usuario
-                        Collection<MaquinaVirtual> maquinasUsuario = user.getMaquinasVirtuales();
-                        for (MaquinaVirtual maquina : maquinasUsuario)
-                        {
-                            maquinaVirtualDao.delete(maquina);
-                        }
-
-                        //Eliminar usuario
-                        usuarioDao.delete(user);
-
-                        return true;
-                    } catch (SQLException ex)
-                    {
-                        System.out.println("Error eliminando el usuario");
-                        return false;
+                        maquinaVirtualDao.delete(maquina);
                     }
 
-                } else
+                    //Eliminar usuario
+                    usuarioDao.delete(user);
+
+                    return true;
+                } catch (SQLException ex)
                 {
-                    System.out.println("No tiene permisos para realizar esta acción");
+                    System.out.println("Error eliminando el usuario");
                     return false;
                 }
 
+            } else
+            {
+                System.out.println("No tiene permisos para realizar esta acción");
+                return false;
             }
-
         });
 
         //Listar máquinas virtuales de un usuario
-        get("/list-machines", new Route()
+        get("/list-machines", (Request rqst, Response rspns) ->
         {
+            String username = rqst.queryParams("username");
 
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            if (username != null && !username.equals(""))
             {
-                String username = rqst.queryParams("username");
-
-                if (username != null && !username.equals(""))
+                try
                 {
 
-                    String json = null;
-                    List<MaquinaVirtual> maquinas = new ArrayList<>();
+                    QueryBuilder<MaquinaVirtual, Integer> queryBuilder = maquinaVirtualDao.queryBuilder();
+                    queryBuilder.where().eq(MaquinaVirtual.USERNAME_FIELD, username);
 
-                    try
-                    {
+                    PreparedQuery<MaquinaVirtual> preparedQuery = queryBuilder.prepare();
 
-                        QueryBuilder<MaquinaVirtual, Integer> queryBuilder = maquinaVirtualDao.queryBuilder();
-                        queryBuilder.where().eq(MaquinaVirtual.USERNAME_FIELD, username);
+                    return maquinaVirtualDao.query(preparedQuery);
 
-                        PreparedQuery<MaquinaVirtual> preparedQuery = queryBuilder.prepare();
-
-                        maquinas = maquinaVirtualDao.query(preparedQuery);
-                        System.out.println("Tamaño " + maquinas.size());
-
-                        return maquinas;
-
-                    } catch (SQLException ex)
-                    {
-                        System.out.println("Error consultando las máquinas del usuario");
-
-                    }
-
-                    return "Problema";
-                } else
+                } catch (SQLException ex)
                 {
-                    return "Problema";
+                    System.out.println("Error consultando las máquinas del usuario");
+
                 }
 
+                return "Problema";
+            } else
+            {
+                return "Problema";
             }
+        }, new JsonTransformer());
 
+        //Listar usuarios
+        get("/list-users", (Request rqst, Response rspns) ->
+        {
+            String username = rqst.queryParams("usernameLogged");
+
+            if (username.equals("admin"))
+            {
+                List<Usuario> usuarios = new ArrayList<>();
+                try
+                {
+                    usuarios = usuarioDao.queryForAll();
+                } catch (SQLException ex)
+                {
+                    System.out.println("Error listando los usuarios");
+                }
+
+                return usuarios;
+            } else
+            {
+                System.out.println("No tiene permisos para realizar esta acción");
+                return "No tiene permisos para realizar esta acción";
+            }
         }, new JsonTransformer());
 
         // Cargar datos de prueba
-        get("/add-testdata", new Route()
+        get("/add-testdata", (Request rqst, Response rspns) ->
         {
-
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            try
             {
-
-                try
-                {
-                    testData();
-                } catch (SQLException ex)
-                {
-                    return "Error agregando información de prueba";
-                }
-
-                return "OK";
-
+                testData();
+            } catch (SQLException ex)
+            {
+                return "Error agregando información de prueba";
             }
 
+            return "OK";
         });
 
-        get("/delete-testdata", new Route()
+        get("/delete-testdata", (Request rqst, Response rspns) ->
         {
-
-            @Override
-            public Object handle(Request rqst, Response rspns)
+            try
             {
-
-                try
-                {
-                    TableUtils.dropTable(connectionSource, Usuario.class, true);
-                    TableUtils.dropTable(connectionSource, MaquinaVirtual.class, true);
-                    TableUtils.dropTable(connectionSource, SistemaOperativo.class, true);
-                    TableUtils.dropTable(connectionSource, App.class, true);
-                    TableUtils.dropTable(connectionSource, Cookbook.class, true);
-                    TableUtils.dropTable(connectionSource, MaquinaApp.class, true);
-                    TableUtils.dropTable(connectionSource, CookbookApp.class, true);
-                } catch (SQLException ex)
-                {
-                    return "Error eliminando la información";
-                }
-
-                return "OK";
-
+                TableUtils.dropTable(connectionSource, Usuario.class, true);
+                TableUtils.dropTable(connectionSource, MaquinaVirtual.class, true);
+                TableUtils.dropTable(connectionSource, SistemaOperativo.class, true);
+                TableUtils.dropTable(connectionSource, App.class, true);
+                TableUtils.dropTable(connectionSource, Cookbook.class, true);
+                TableUtils.dropTable(connectionSource, MaquinaApp.class, true);
+                TableUtils.dropTable(connectionSource, CookbookApp.class, true);
+            } catch (SQLException ex)
+            {
+                return "Error eliminando la información";
             }
 
+            return "OK";
         });
 
     }
