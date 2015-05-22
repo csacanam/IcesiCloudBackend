@@ -5,6 +5,7 @@
  */
 package com.peewah.models;
 
+import com.google.gson.annotations.Expose;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -19,6 +20,7 @@ import java.util.Collection;
 public class Cookbook
 {
 
+    @Expose
     @DatabaseField(id = true, canBeNull = false)
     private String ruta;
 
@@ -48,5 +50,4 @@ public class Cookbook
     {
         this.cookbooksApps = cookbooksApps;
     }
-
 }

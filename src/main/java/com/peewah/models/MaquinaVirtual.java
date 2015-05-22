@@ -5,6 +5,7 @@
  */
 package com.peewah.models;
 
+import com.google.gson.annotations.Expose;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -25,9 +26,11 @@ public class MaquinaVirtual
     public static final String SISTEMAOPERATIVO_FIELD = "sistemaOperativo_id";
 
     //Campos
+    @Expose
     @DatabaseField(generatedIdSequence = "mv_seq")
     private int id;
-    
+
+    @Expose
     @DatabaseField(canBeNull = false)
     private String nombre;
 
@@ -39,6 +42,7 @@ public class MaquinaVirtual
 
     @ForeignCollectionField(eager = false)
     private Collection<MaquinaApp> maquinasApps = new ArrayList<>();
+
 
     public MaquinaVirtual()
     {
@@ -74,16 +78,6 @@ public class MaquinaVirtual
     {
         this.sistemaOperativo = sistemaOperativo;
     }
-    
-    public Collection<MaquinaApp> getMaquinasApps()
-    {
-        return maquinasApps;
-    }
-
-    public void setMaquinasApps(Collection<MaquinaApp> maquinasApps)
-    {
-        this.maquinasApps = maquinasApps;
-    }
 
     public int getId()
     {
@@ -94,13 +88,15 @@ public class MaquinaVirtual
     {
         this.id = id;
     }
-    
-    
 
-    @Override
-    public String toString()
+        public Collection<MaquinaApp> getMaquinasApps()
     {
-        return nombre;
+        return maquinasApps;
+    }
+
+    public void setMaquinasApps(Collection<MaquinaApp> maquinasApps)
+    {
+        this.maquinasApps = maquinasApps;
     }
 
 }

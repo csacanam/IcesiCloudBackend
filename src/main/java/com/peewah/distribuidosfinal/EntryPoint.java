@@ -5,6 +5,7 @@
  */
 package com.peewah.distribuidosfinal;
 
+import com.google.gson.Gson;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
@@ -23,19 +24,16 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.json.simple.JSONValue;
 import spark.Filter;
 import spark.Request;
 import spark.Response;
 import spark.Route;
+import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.delete;
 import static spark.Spark.get;
 import static spark.Spark.options;
 import static spark.Spark.post;
-import static spark.Spark.setPort;
 
 /**
  *
@@ -43,6 +41,7 @@ import static spark.Spark.setPort;
  */
 public class EntryPoint
 {
+
     //Dao
     private static Dao<Usuario, String> usuarioDao;
     private static Dao<SistemaOperativo, String> sistemaOperativoDao;
@@ -115,18 +114,18 @@ public class EntryPoint
 
         //4. Asignación de puerto
         ProcessBuilder process = new ProcessBuilder();
-        Integer port;
+        Integer puerto;
         if (process.environment().get("PORT") != null)
         {
-            port = Integer.parseInt(process.environment().get("PORT"));
+            puerto = Integer.parseInt(process.environment().get("PORT"));
         } else
         {
-            port = 8080;
+            puerto = 8080;
         }
-        setPort(port);
+        spark.SparkBase.port(puerto);
 
         //5. Habilitar Cross-origin resource sharing (CORS)
-        options(new Route("/*")
+        options("/*",new Route()
         {
 
             @Override
@@ -160,9 +159,19 @@ public class EntryPoint
             }
         });
 
+        after(new Filter()
+        {
+
+            @Override
+            public void handle(Request rqst, Response rspns)
+            {
+                rspns.type("application/json");
+            }
+        });
+
         //6. Web services
         //Crear usuario
-        post(new Route("/new-user")
+        post("/new-user", new Route()
         {
 
             @Override
@@ -206,7 +215,7 @@ public class EntryPoint
         });
 
         //Autenticar usuario
-        post(new Route("/auth-user")
+        post("/auth-user", new Route()
         {
 
             @Override
@@ -244,7 +253,7 @@ public class EntryPoint
         });
 
         //Listar sistemas operativos disponibles
-        get(new Route("/list-so")
+        get("/list-so", new Route()
         {
 
             @Override
@@ -265,7 +274,7 @@ public class EntryPoint
         });
 
         //Crear máquina virtual
-        post(new Route("/create-machine")
+        post("/create-machine", new Route()
         {
 
             @Override
@@ -300,7 +309,7 @@ public class EntryPoint
         });
 
         //Eliminar usuario y sus máquinas virtuales asociadas
-        delete(new Route("/delete-user")
+        delete("/delete-user", new Route()
         {
 
             @Override
@@ -309,7 +318,7 @@ public class EntryPoint
                 String userLogged = rqst.queryParams("usernameLogged");
                 String nombreUsuario = rqst.queryParams("usernameToDelete");
 
-                if (userLogged!=null && !userLogged.equals("") && nombreUsuario != null && !userLogged.equals("") && userLogged.equals("admin"))
+                if (userLogged != null && !userLogged.equals("") && nombreUsuario != null && !userLogged.equals("") && userLogged.equals("admin"))
                 {
                     try
                     {
@@ -343,7 +352,7 @@ public class EntryPoint
         });
 
         //Listar máquinas virtuales de un usuario
-        get(new Route("/list-machines")
+        get("/list-machines", new Route()
         {
 
             @Override
@@ -353,6 +362,8 @@ public class EntryPoint
 
                 if (username != null && !username.equals(""))
                 {
+
+                    String json = null;
                     List<MaquinaVirtual> maquinas = new ArrayList<>();
 
                     try
@@ -364,24 +375,28 @@ public class EntryPoint
                         PreparedQuery<MaquinaVirtual> preparedQuery = queryBuilder.prepare();
 
                         maquinas = maquinaVirtualDao.query(preparedQuery);
+                        System.out.println("Tamaño " + maquinas.size());
+
+                        return maquinas;
 
                     } catch (SQLException ex)
                     {
                         System.out.println("Error consultando las máquinas del usuario");
+
                     }
 
-                    return JSONValue.toJSONString(maquinas);
+                    return "Problema";
                 } else
                 {
-                    return null;
+                    return "Problema";
                 }
 
             }
 
-        });
+        }, new JsonTransformer());
 
         // Cargar datos de prueba
-        get(new Route("/add-testdata")
+        get("/add-testdata", new Route()
         {
 
             @Override
@@ -402,7 +417,7 @@ public class EntryPoint
 
         });
 
-        get(new Route("/delete-testdata")
+        get("/delete-testdata", new Route()
         {
 
             @Override

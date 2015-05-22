@@ -5,6 +5,7 @@
  */
 package com.peewah.models;
 
+import com.google.gson.annotations.Expose;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -19,9 +20,11 @@ import java.util.Collection;
 public class SistemaOperativo
 {
 
+    @Expose
     @DatabaseField(id = true, canBeNull = false)
     private String nombre;
     
+    @Expose
     @DatabaseField(canBeNull = false)
     private String nombreBox;
 
