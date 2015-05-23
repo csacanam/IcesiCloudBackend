@@ -217,21 +217,19 @@ public class EntryPoint
                 try
                 {
                     Usuario usuario = usuarioDao.queryForId(username);
-                    if (usuario.getPassword().equals(password))
+                    if (usuario!=null && usuario.getPassword().equals(password))
                     {
                         return true;
                     }
+
                 } catch (SQLException ex)
                 {
-                    return false;
                 }
 
-            } else
-            {
-                return false;
-            }
-
+            } 
+            
             return false;
+
         });
 
         //Listar sistemas operativos disponibles
