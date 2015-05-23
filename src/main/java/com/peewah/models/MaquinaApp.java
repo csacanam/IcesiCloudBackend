@@ -16,6 +16,9 @@ import com.j256.ormlite.table.DatabaseTable;
 public class MaquinaApp
 {
 
+    //Nombres de los campos
+    public static final String MACHINE_FIELD = "maquina_id";
+
     @DatabaseField(generatedIdSequence = "ma_seq")
     private int id;
 
@@ -66,6 +69,4 @@ public class MaquinaApp
         this.id = id;
     }
 
-    
-    
 }

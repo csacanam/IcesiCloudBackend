@@ -5,7 +5,6 @@
  */
 package com.peewah.distribuidosfinal;
 
-import com.google.gson.Gson;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
@@ -20,10 +19,12 @@ import com.peewah.models.MaquinaApp;
 import com.peewah.models.MaquinaVirtual;
 import com.peewah.models.SistemaOperativo;
 import com.peewah.models.Usuario;
+import java.io.File;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.apache.commons.io.FileUtils;
 import spark.Filter;
 import spark.Request;
 import spark.Response;
@@ -173,6 +174,18 @@ public class EntryPoint
                 try
                 {
                     usuarioDao.create(usuario);
+
+                    //Crear carpeta
+                    File file = new File("/tmp/" + username);
+                    if (!file.exists())
+                    {
+                        boolean success = file.mkdir();
+                        if (!success)
+                        {
+                            System.out.println("La carpeta no pudo ser creada");
+                        }
+                    }
+
                 } catch (SQLException ex)
                 {
                     System.out.println("Error creando el usuario");
@@ -259,9 +272,23 @@ public class EntryPoint
 
                     maquinaVirtualDao.create(maquinaVirtual);
 
+                    //Crear carpeta
+                    File file = new File("/tmp/" + username + "/" + nombreMaquina);
+                    if (!file.exists())
+                    {
+                        boolean success = file.mkdir();
+
+                        if (!success)
+                        {
+                            System.out.println("No se pudo crear la carpeta para la máquina");
+                        } else
+                        {
+                            //Crear Vagrantfile
+                        }
+                    }
+
                     return true;
-                }
-                else
+                } else
                 {
                     return false;
                 }
@@ -285,17 +312,37 @@ public class EntryPoint
                 {
                     Usuario user = usuarioDao.queryForId(nombreUsuario);
 
-                    //Eliminar máquinas virtuales del usuario
-                    Collection<MaquinaVirtual> maquinasUsuario = user.getMaquinasVirtuales();
-                    for (MaquinaVirtual maquina : maquinasUsuario)
+                    if (user != null)
                     {
-                        maquinaVirtualDao.delete(maquina);
+                        //Eliminar máquinas virtuales del usuario
+                        Collection<MaquinaVirtual> maquinasUsuario = user.getMaquinasVirtuales();
+                        for (MaquinaVirtual maquina : maquinasUsuario)
+                        {
+                            //Eliminar apps de las máquinas virtuales del usuario
+                            QueryBuilder<MaquinaApp, String> queryBuilder = maquinaAppDao.queryBuilder();
+                            queryBuilder.where().eq(MaquinaApp.MACHINE_FIELD, maquina.getId());
+                            PreparedQuery<MaquinaApp> preparedQuery = queryBuilder.prepare();
+
+                            Collection<MaquinaApp> maquinasApps = maquinaAppDao.query(preparedQuery);
+                            maquinaAppDao.delete(maquinasApps);
+
+                            //Eliminar la máquina virtual
+                            maquinaVirtualDao.delete(maquina);
+                        }
+
+                        //Eliminar usuario
+                        usuarioDao.delete(user);
+
+                        //Eliminar carpeta del usuario
+                        FileUtils.deleteDirectory(new File("/tmp/" + nombreUsuario));
+                        
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
                     }
 
-                    //Eliminar usuario
-                    usuarioDao.delete(user);
-
-                    return true;
                 } catch (SQLException ex)
                 {
                     System.out.println("Error eliminando el usuario");
