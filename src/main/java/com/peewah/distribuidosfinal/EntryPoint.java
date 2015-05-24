@@ -20,15 +20,23 @@ import com.peewah.models.MaquinaVirtual;
 import com.peewah.models.Nodo;
 import com.peewah.models.SistemaOperativo;
 import com.peewah.models.Usuario;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
 import spark.Request;
 import spark.Response;
@@ -444,6 +452,8 @@ public class EntryPoint
                     nodoDao.create(nodo);
 
                     //Crear nodo en Vagrantfile
+                    insertarNodoEnVagrantFile("/tmp/"+userLogged+"/"+nombreMaquina, nodo);
+                    
                     return true;
 
                 }
@@ -821,4 +831,73 @@ public class EntryPoint
         return maquinasVirtuales;
     }
 
+    /**
+     * Permite insertar un nodo en un Vagrantfile
+     * @param rutaCarpetaVagrantfile Ruta de la carpeta en la cual está el Vagrantfile
+     * @param nodo Nodo que se va a insertar en el VagrantFile
+     * @return True si lo pudo agregar y false en caso contrario
+     */
+    public static boolean insertarNodoEnVagrantFile(String rutaCarpetaVagrantfile, Nodo nodo)
+    {
+        FileInputStream fis = null;
+        try
+        {
+            //Archivo de entrada
+            File inFile = new File(rutaCarpetaVagrantfile + "/Vagrantfile");
+
+            if (inFile.exists() && inFile.isFile())
+            {
+                //Archivo temporal
+                File tempFile = new File(rutaCarpetaVagrantfile + "/$$$$$.tmp");
+
+                //Input
+                fis = new FileInputStream(inFile);
+                BufferedReader in = new BufferedReader(new InputStreamReader(fis));
+
+                //Output
+                FileOutputStream fos = new FileOutputStream(tempFile);
+                PrintWriter out = new PrintWriter(fos);
+
+                String thisLine = "";
+                while ((thisLine = in.readLine()) != null)
+                {
+                    //Escribir linea del archivo anterior
+                    out.println(thisLine);
+
+                    //Crear nodo
+                    if (thisLine.toLowerCase().contains("Vagrant.configure(VAGRANTFILE_API_VERSION)".toLowerCase()))
+                    {
+                        out.println("\tconfig.vm.define :"+nodo.getNombre()+" do |"+nodo.getNombre()+"|");
+                        out.println("\t\t"+ nodo.getNombre()+".vm.box = \"" + nodo.getMaquinaVirtual().getSistemaOperativo().getNombreBox()+"\"");
+                        out.println("\t\t"+ nodo.getNombre()+".vm.network :private_network, ip: \""+nodo.getIpPrivada()+"\"");
+                        out.println("\t\t"+ nodo.getNombre()+".vm.network \"public_network\", :bridge => \""+nodo.getInterfazPuente()+"\", ip:\""+nodo.getIpPublica()+"\", :auto_config => \"false\", :netmask => \""+nodo.getMascaraRed()+"\"");
+                        out.println("\t\t"+ nodo.getNombre()+".vm.provider :virtualbox do |vb|");
+                        out.println("\t\t\t vb.customize[\"modifyvm\", :id, \"--memory\", \""+nodo.getCantidadMemoria()+"\",\"--cpus\", \""+nodo.getCantidadCPU()+"\", \"--name\", \""+nodo.getNombre()+"\" ]");
+                        out.println("\t\tend");
+                        out.println("\tend");                 
+                    }
+
+                }
+
+                out.flush();
+                out.close();
+                in.close();
+
+                inFile.delete();
+                tempFile.renameTo(inFile);
+
+                return true;
+            }
+
+        } catch (FileNotFoundException ex)
+        {
+            System.out.println("No se encontró el archivo");
+        } catch (IOException ex)
+        {
+            System.out.println("Error en el flujo");
+        }
+        
+        return false;
+
+    }
 }
