@@ -417,6 +417,17 @@ public class EntryPoint
         {
             try
             {
+                if (connectionSource != null)
+                {
+                    TableUtils.createTableIfNotExists(connectionSource, Usuario.class);
+                    TableUtils.createTableIfNotExists(connectionSource, SistemaOperativo.class);
+                    TableUtils.createTableIfNotExists(connectionSource, MaquinaVirtual.class);
+                    TableUtils.createTableIfNotExists(connectionSource, App.class);
+                    TableUtils.createTableIfNotExists(connectionSource, MaquinaApp.class);
+                    TableUtils.createTableIfNotExists(connectionSource, Cookbook.class);
+                    TableUtils.createTableIfNotExists(connectionSource, CookbookApp.class);
+                    TableUtils.createTableIfNotExists(connectionSource, Nodo.class);
+                }
                 testData();
             } catch (SQLException ex)
             {
@@ -426,6 +437,7 @@ public class EntryPoint
             return "OK";
         });
 
+        //Eliminar datos de prueba
         get("/delete-testdata", (Request rqst, Response rspns) ->
         {
             try
@@ -707,7 +719,6 @@ public class EntryPoint
         nodoCuatroCS.setParametrosJSON("{\"aptmirror\" => {\"server\" => \"192.168.131.254\"},\"hostconf\" => {\"hostmaster\" => \"headnode\",\"hostname\" => \"node1\"}}");
         nodoCuatroCS.setMaquinaVirtual(maquinaTresCS);
         nodoDao.create(nodoCuatroCS);
-
 
     }
 
