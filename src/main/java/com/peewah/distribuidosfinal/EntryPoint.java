@@ -20,16 +20,18 @@ import com.peewah.models.MaquinaVirtual;
 import com.peewah.models.Nodo;
 import com.peewah.models.SistemaOperativo;
 import com.peewah.models.Usuario;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
-import spark.Filter;
 import spark.Request;
 import spark.Response;
-import spark.Route;
 import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.delete;
@@ -276,7 +278,8 @@ public class EntryPoint
                     maquinaVirtualDao.create(maquinaVirtual);
 
                     //Crear carpeta
-                    File file = new File("/tmp/" + username + "/" + nombreMaquina);
+                    String path = "/tmp/" + username + "/" + nombreMaquina;
+                    File file = new File(path);
                     if (!file.exists())
                     {
                         boolean success = file.mkdir();
@@ -286,7 +289,17 @@ public class EntryPoint
                             System.out.println("No se pudo crear la carpeta para la máquina");
                         } else
                         {
+
                             //Crear Vagrantfile
+                            try (
+                                    Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path+"/Vagrantfile"), "UTF-8")))
+                            {
+                                writer.write("VAGRANTFILE_API_VERSION = \"2\"\n");
+                                writer.write("Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|\n");
+                                writer.write("\n");
+                                writer.write("end\n");
+                            }
+
                         }
                     }
 
@@ -449,6 +462,7 @@ public class EntryPoint
                 TableUtils.dropTable(connectionSource, Cookbook.class, true);
                 TableUtils.dropTable(connectionSource, MaquinaApp.class, true);
                 TableUtils.dropTable(connectionSource, CookbookApp.class, true);
+                TableUtils.dropTable(connectionSource, Nodo.class, true);
             } catch (SQLException ex)
             {
                 return "Error eliminando la información";
