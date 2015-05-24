@@ -43,6 +43,8 @@ public class MaquinaVirtual
     @ForeignCollectionField(eager = false)
     private Collection<MaquinaApp> maquinasApps = new ArrayList<>();
 
+    @ForeignCollectionField(eager = false)
+    private Collection<Nodo> nodos = new ArrayList<>();
 
     public MaquinaVirtual()
     {
@@ -89,7 +91,7 @@ public class MaquinaVirtual
         this.id = id;
     }
 
-        public Collection<MaquinaApp> getMaquinasApps()
+    public Collection<MaquinaApp> getMaquinasApps()
     {
         return maquinasApps;
     }
@@ -98,5 +100,17 @@ public class MaquinaVirtual
     {
         this.maquinasApps = maquinasApps;
     }
+
+    public Collection<Nodo> getNodos()
+    {
+        return nodos;
+    }
+
+    public void setNodos(Collection<Nodo> nodos)
+    {
+        this.nodos = nodos;
+    }
+    
+    
 
 }

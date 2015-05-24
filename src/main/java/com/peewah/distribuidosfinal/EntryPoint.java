@@ -17,6 +17,7 @@ import com.peewah.models.Cookbook;
 import com.peewah.models.CookbookApp;
 import com.peewah.models.MaquinaApp;
 import com.peewah.models.MaquinaVirtual;
+import com.peewah.models.Nodo;
 import com.peewah.models.SistemaOperativo;
 import com.peewah.models.Usuario;
 import java.io.File;
@@ -51,6 +52,7 @@ public class EntryPoint
     private static Dao<MaquinaApp, String> maquinaAppDao;
     private static Dao<Cookbook, String> cookbookDao;
     private static Dao<CookbookApp, String> cookbookAppDao;
+    private static Dao<Nodo, String> nodoDao;
 
     //ConnectionSource
     private static ConnectionSource connectionSource = null;
@@ -77,6 +79,7 @@ public class EntryPoint
         appDao = null;
         cookbookDao = null;
         cookbookAppDao = null;
+        nodoDao = null;
 
         if (connectionSource != null)
         {
@@ -89,6 +92,7 @@ public class EntryPoint
                 appDao = DaoManager.createDao(connectionSource, App.class);
                 cookbookDao = DaoManager.createDao(connectionSource, Cookbook.class);
                 cookbookAppDao = DaoManager.createDao(connectionSource, CookbookApp.class);
+                nodoDao = DaoManager.createDao(connectionSource, Nodo.class);
 
             } catch (SQLException ex)
             {
@@ -107,6 +111,7 @@ public class EntryPoint
             TableUtils.createTableIfNotExists(connectionSource, MaquinaApp.class);
             TableUtils.createTableIfNotExists(connectionSource, Cookbook.class);
             TableUtils.createTableIfNotExists(connectionSource, CookbookApp.class);
+            TableUtils.createTableIfNotExists(connectionSource, Nodo.class);
 
         } catch (SQLException ex)
         {
@@ -217,7 +222,7 @@ public class EntryPoint
                 try
                 {
                     Usuario usuario = usuarioDao.queryForId(username);
-                    if (usuario!=null && usuario.getPassword().equals(password))
+                    if (usuario != null && usuario.getPassword().equals(password))
                     {
                         return true;
                     }
@@ -226,8 +231,8 @@ public class EntryPoint
                 {
                 }
 
-            } 
-            
+            }
+
             return false;
 
         });
@@ -333,10 +338,9 @@ public class EntryPoint
 
                         //Eliminar carpeta del usuario
                         FileUtils.deleteDirectory(new File("/tmp/" + nombreUsuario));
-                        
+
                         return true;
-                    }
-                    else
+                    } else
                     {
                         return false;
                     }
@@ -654,6 +658,56 @@ public class EntryPoint
         maquinaAppDosLC.setMaquina(maquinaDosLC);
         maquinaAppDosLC.setApp(appUno);
         maquinaAppDao.create(maquinaAppDosLC);
+
+        // 8. Crear nodos
+        Nodo nodoUnoCS = new Nodo();
+        nodoUnoCS.setNombre("oracle");
+        nodoUnoCS.setIpPrivada("172.40.0.2");
+        nodoUnoCS.setIpPublica("192.168.131.28");
+        nodoUnoCS.setMascaraRed("255.255.255.0");
+        nodoUnoCS.setCantidadMemoria("512");
+        nodoUnoCS.setCantidadCPU("1");
+        nodoUnoCS.setInterfazPuente("eth0");
+        nodoUnoCS.setParametrosJSON("{\"aptmirror\" => {\"server\" => \"192.168.131.254\"}, \"portUno\" => {\"webPort\" => \"8080\"}, \"portDos\" => {\"dbPort\" => \"1521\"}}");
+        nodoUnoCS.setMaquinaVirtual(maquinaUnoCS);
+        nodoDao.create(nodoUnoCS);
+
+        Nodo nodoDosCS = new Nodo();
+        nodoDosCS.setNombre("oracle2");
+        nodoDosCS.setIpPrivada("172.40.0.3");
+        nodoDosCS.setIpPublica("192.168.131.29");
+        nodoDosCS.setMascaraRed("255.255.255.0");
+        nodoDosCS.setCantidadMemoria("512");
+        nodoDosCS.setCantidadCPU("1");
+        nodoDosCS.setInterfazPuente("eth0");
+        nodoDosCS.setMaquinaVirtual(maquinaDosCS);
+        nodoDosCS.setParametrosJSON("{\"aptmirror\" => {\"server\" => \"192.168.131.254\"}, \"portUno\" => {\"webPort\" => \"8080\"}, \"portDos\" => {\"dbPort\" => \"1521\"}}");
+        nodoDao.create(nodoDosCS);
+
+        Nodo nodoTresCS = new Nodo();
+        nodoTresCS.setNombre("mpi_master");
+        nodoTresCS.setIpPrivada("172.40.0.4");
+        nodoTresCS.setIpPublica("192.168.131.28");
+        nodoTresCS.setMascaraRed("255.255.255.0");
+        nodoTresCS.setCantidadMemoria("512");
+        nodoTresCS.setCantidadCPU("1");
+        nodoTresCS.setInterfazPuente("eth0");
+        nodoTresCS.setParametrosJSON("{\"aptmirror\" => {\"server\" => \"192.168.131.254\"},\"hostconf\" => {\"hostmaster\" => \"headnode\",\"hostname\" => \"headnode\"}}");
+        nodoTresCS.setMaquinaVirtual(maquinaTresCS);
+        nodoDao.create(nodoTresCS);
+
+        Nodo nodoCuatroCS = new Nodo();
+        nodoCuatroCS.setNombre("mpi_node1");
+        nodoCuatroCS.setIpPrivada("172.40.0.5");
+        nodoCuatroCS.setIpPublica("192.168.131.29");
+        nodoCuatroCS.setMascaraRed("255.255.255.0");
+        nodoCuatroCS.setCantidadMemoria("512");
+        nodoCuatroCS.setCantidadCPU("1");
+        nodoCuatroCS.setInterfazPuente("eth0");
+        nodoCuatroCS.setParametrosJSON("{\"aptmirror\" => {\"server\" => \"192.168.131.254\"},\"hostconf\" => {\"hostmaster\" => \"headnode\",\"hostname\" => \"node1\"}}");
+        nodoCuatroCS.setMaquinaVirtual(maquinaTresCS);
+        nodoDao.create(nodoCuatroCS);
+
 
     }
 

@@ -27,6 +27,8 @@ public class Cookbook
     @ForeignCollectionField(eager = false)
     private Collection<CookbookApp> cookbooksApps = new ArrayList<>();
 
+
+
     public Cookbook()
     {
     }
@@ -50,4 +52,6 @@ public class Cookbook
     {
         this.cookbooksApps = cookbooksApps;
     }
+
+    
 }
