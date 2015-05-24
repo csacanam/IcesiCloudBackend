@@ -292,7 +292,7 @@ public class EntryPoint
 
                             //Crear Vagrantfile
                             try (
-                                    Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path+"/Vagrantfile"), "UTF-8")))
+                                    Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path + "/Vagrantfile"), "UTF-8")))
                             {
                                 writer.write("VAGRANTFILE_API_VERSION = \"2\"\n");
                                 writer.write("Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|\n");
@@ -375,30 +375,7 @@ public class EntryPoint
         get("/list-machines", (Request rqst, Response rspns) ->
         {
             String username = rqst.queryParams("username");
-
-            if (username != null && !username.equals(""))
-            {
-                try
-                {
-
-                    QueryBuilder<MaquinaVirtual, Integer> queryBuilder = maquinaVirtualDao.queryBuilder();
-                    queryBuilder.where().eq(MaquinaVirtual.USERNAME_FIELD, username);
-
-                    PreparedQuery<MaquinaVirtual> preparedQuery = queryBuilder.prepare();
-
-                    return maquinaVirtualDao.query(preparedQuery);
-
-                } catch (SQLException ex)
-                {
-                    System.out.println("Error consultando las máquinas del usuario");
-
-                }
-
-                return "Problema";
-            } else
-            {
-                return "Problema";
-            }
+            return listMachines(username);
         }, new JsonTransformer());
 
         //Listar usuarios
@@ -423,6 +400,81 @@ public class EntryPoint
                 System.out.println("No tiene permisos para realizar esta acción");
                 return "No tiene permisos para realizar esta acción";
             }
+        }, new JsonTransformer());
+
+        // Agregar nodo a una máquina virtual
+        post("/add-node", (Request rqst, Response rspns) ->
+        {
+            String nombreNodo = rqst.queryParams("nombreNodo");
+            String ipPrivada = rqst.queryParams("ipPrivada");
+            String ipPublica = rqst.queryParams("ipPublica");
+            String mascaraRed = rqst.queryParams("mascaraRed");
+            String cantidadMemoria = rqst.queryParams("cantidadMemoria");
+            String cantidadCPU = rqst.queryParams("cantidadCPU");
+            String interfazPuente = rqst.queryParams("interfazPuente");
+            String parametrosJSON = rqst.queryParams("parametrosJSON");
+            String nombreMaquina = rqst.queryParams("nombreMaquina");
+            String userLogged = rqst.queryParams("userLogged");
+
+            Usuario user = usuarioDao.queryForId(userLogged);
+
+            if (user != null)
+            {
+                //Buscar máquina
+                QueryBuilder<MaquinaVirtual, Integer> queryBuilder = maquinaVirtualDao.queryBuilder();
+                queryBuilder.where().eq(MaquinaVirtual.USERNAME_FIELD, userLogged);
+                queryBuilder.where().eq(MaquinaVirtual.NOMBRE_FIELD, nombreMaquina);
+                PreparedQuery<MaquinaVirtual> preparedQuery = queryBuilder.prepare();
+                List<MaquinaVirtual> maquinasUser = maquinaVirtualDao.query(preparedQuery);
+
+                //Existe la máquina
+                if (maquinasUser.size() > 0 && maquinasUser.get(0).getNombre().equals(nombreMaquina))
+                {
+                    //Crear nodo
+                    Nodo nodo = new Nodo();
+                    nodo.setNombre(nombreNodo);
+                    nodo.setCantidadCPU(cantidadCPU);
+                    nodo.setCantidadMemoria(cantidadMemoria);
+                    nodo.setInterfazPuente(interfazPuente);
+                    nodo.setIpPrivada(ipPrivada);
+                    nodo.setIpPublica(ipPublica);
+                    nodo.setMascaraRed(mascaraRed);
+                    nodo.setParametrosJSON(parametrosJSON);
+                    nodo.setMaquinaVirtual(maquinasUser.get(0));
+                    nodoDao.create(nodo);
+
+                    //Crear nodo en Vagrantfile
+                    return true;
+
+                }
+            }
+
+            return false;
+
+        });
+
+        //Listar apps para un SO
+        get("/list-apps", (Request rqst, Response rspns) ->
+        {
+            String nameSO = rqst.queryParams("nombreSO");
+
+            SistemaOperativo buscado = sistemaOperativoDao.queryForId(nameSO);
+
+            if (buscado != null)
+            {
+
+                QueryBuilder<App, String> queryBuilder = appDao.queryBuilder();
+                queryBuilder.where().eq(App.SO_FIELD, buscado.getNombre());
+                PreparedQuery<App> preparedQuery = queryBuilder.prepare();
+
+                Collection<App> aplicaciones = appDao.query(preparedQuery);
+
+                return aplicaciones;
+            } else
+            {
+                return "El SO buscado no existe";
+            }
+
         }, new JsonTransformer());
 
         // Cargar datos de prueba
@@ -734,6 +786,39 @@ public class EntryPoint
         nodoCuatroCS.setMaquinaVirtual(maquinaTresCS);
         nodoDao.create(nodoCuatroCS);
 
+    }
+
+    /**
+     * Permite listar las máquinas virtuales de un usuario conociendo su
+     * username
+     *
+     * @param username el username del usuario del que se desea ver las máquinas
+     * virtuales
+     * @return
+     */
+    public static List<MaquinaVirtual> listMachines(String username)
+    {
+        List<MaquinaVirtual> maquinasVirtuales = new ArrayList<>();
+
+        if (username != null && !username.equals(""))
+        {
+            try
+            {
+
+                QueryBuilder<MaquinaVirtual, Integer> queryBuilder = maquinaVirtualDao.queryBuilder();
+                queryBuilder.where().eq(MaquinaVirtual.USERNAME_FIELD, username);
+
+                PreparedQuery<MaquinaVirtual> preparedQuery = queryBuilder.prepare();
+
+                maquinasVirtuales = maquinaVirtualDao.query(preparedQuery);
+
+            } catch (SQLException ex)
+            {
+                System.out.println("Error consultando las máquinas del usuario");
+            }
+
+        }
+        return maquinasVirtuales;
     }
 
 }

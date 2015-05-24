@@ -19,6 +19,9 @@ import java.util.Collection;
 @DatabaseTable(tableName = "App")
 public class App
 {
+//Nombres de los campos
+
+    public static final String SO_FIELD = "sistemaOperativo_id";
 
     @Expose
     @DatabaseField(id = true, canBeNull = false)
@@ -76,6 +79,5 @@ public class App
     {
         this.cookbooksApps = cookbooksApps;
     }
-
 
 }
