@@ -450,8 +450,8 @@ public class EntryPoint
                     nodoDao.create(nodo);
 
                     //Crear nodo en Vagrantfile
-                    insertarNodoEnVagrantFile("/tmp/"+userLogged+"/"+nombreMaquina, nodo);
-                    
+                    insertarNodoEnVagrantFile("/tmp/" + userLogged + "/" + nombreMaquina, nodo);
+
                     return true;
 
                 }
@@ -483,6 +483,111 @@ public class EntryPoint
                 return "El SO buscado no existe";
             }
 
+        }, new JsonTransformer());
+
+        //Listar apps para una maquina virtual
+        get("/list-app-installed", (Request rqst, Response rspns) ->
+        {
+            String userLogged = rqst.queryParams("userLogged");
+            String machineName = rqst.queryParams("nombreMaquina");
+
+            List<MaquinaApp> maquinaApp;
+            List<App> apps = new ArrayList<>();
+
+            //Buscar si el usuario loggeado existe
+            Usuario buscado;
+            MaquinaVirtual buscada = null;
+            try
+            {
+                buscado = usuarioDao.queryForId(userLogged);
+
+                if (buscado != null)
+                {
+                    //Lista de maquinas virtuales del usuario
+                    Collection<MaquinaVirtual> maquinasVirtuales = listMachines(userLogged);
+
+                    //Revisar si la maquina virtual buscada pertenece al usuario loggeado
+                    for (MaquinaVirtual maquina : maquinasVirtuales)
+                    {
+                        if (maquina.getNombre().equals(machineName))
+                        {
+                            buscada = maquina;
+                        }
+                    }
+
+                    if (buscada != null)
+                    {
+                        //Obtener la lista de aplicaciones de la maquina virtual
+                        QueryBuilder<MaquinaApp, String> queryBuilderN = maquinaAppDao.queryBuilder();
+                        queryBuilderN.where().eq(MaquinaApp.MACHINE_FIELD, buscada.getId());
+                        PreparedQuery<MaquinaApp> preparedQueryN = queryBuilderN.prepare();
+
+                        maquinaApp = maquinaAppDao.query(preparedQueryN);
+
+                        if (maquinaApp.size() > 0)
+                        {
+                            for (MaquinaApp m : maquinaApp)
+                            {
+                                apps.add(m.getApp());
+                            }
+                        }
+
+                    } else
+                    {
+                        System.out.println("La maquina no existe para el usuario buscado");
+                    }
+                } else
+                {
+                    System.out.println("El usuario loggeado no existe");
+                }
+
+            } catch (SQLException ex)
+            {
+                System.out.println("Error listando las apps instaladas");
+            }
+            return apps;
+
+        }, new JsonTransformer());
+
+        //Listar nodos de una maquina virtual
+        get("/list-node", (Request rqst, Response rspns) ->
+        {
+            String userLogged = rqst.queryParams("userLogged");
+            String nombreMaquina = rqst.queryParams("nombreMaquina");
+
+            //Inicializar la lista de nodos que se va a retornar
+            Collection<Nodo> nodos = new ArrayList<>();
+
+            //Validar que no hayan campos vacios
+            if (userLogged != null && !userLogged.equals("") && nombreMaquina != null && !nombreMaquina.equals(""))
+            {
+                //Buscar el usuario loggeado
+                Usuario user = usuarioDao.queryForId(userLogged);
+
+                //Verificar que el usuario existe
+                if (user != null)
+                {
+                    //Obtener las maquinas virtuales del usuario
+                    List<MaquinaVirtual> maquinasVirtuales = listMachines(userLogged);
+
+                    for (MaquinaVirtual m : maquinasVirtuales)
+                    {
+                        if (m.getNombre().equals(nombreMaquina))
+                        {
+                            nodos = m.getNodos();
+                        }
+                    }
+
+                } else
+                {
+                    System.out.println("El usuario loggeado no existe");
+                }
+            } else
+            {
+                System.out.println("No pueden haber parametros vacios");
+            }
+
+            return nodos;
         }, new JsonTransformer());
 
         // Cargar datos de prueba
@@ -831,7 +936,9 @@ public class EntryPoint
 
     /**
      * Permite insertar un nodo en un Vagrantfile
-     * @param rutaCarpetaVagrantfile Ruta de la carpeta en la cual está el Vagrantfile
+     *
+     * @param rutaCarpetaVagrantfile Ruta de la carpeta en la cual está el
+     * Vagrantfile
      * @param nodo Nodo que se va a insertar en el VagrantFile
      * @return True si lo pudo agregar y false en caso contrario
      */
@@ -865,14 +972,14 @@ public class EntryPoint
                     //Crear nodo
                     if (thisLine.toLowerCase().contains("Vagrant.configure(VAGRANTFILE_API_VERSION)".toLowerCase()))
                     {
-                        out.println("\tconfig.vm.define :"+nodo.getNombre()+" do |"+nodo.getNombre()+"|");
-                        out.println("\t\t"+ nodo.getNombre()+".vm.box = \"" + nodo.getMaquinaVirtual().getSistemaOperativo().getNombreBox()+"\"");
-                        out.println("\t\t"+ nodo.getNombre()+".vm.network :private_network, ip: \""+nodo.getIpPrivada()+"\"");
-                        out.println("\t\t"+ nodo.getNombre()+".vm.network \"public_network\", :bridge => \""+nodo.getInterfazPuente()+"\", ip:\""+nodo.getIpPublica()+"\", :auto_config => \"false\", :netmask => \""+nodo.getMascaraRed()+"\"");
-                        out.println("\t\t"+ nodo.getNombre()+".vm.provider :virtualbox do |vb|");
-                        out.println("\t\t\t vb.customize[\"modifyvm\", :id, \"--memory\", \""+nodo.getCantidadMemoria()+"\",\"--cpus\", \""+nodo.getCantidadCPU()+"\", \"--name\", \""+nodo.getNombre()+"\" ]");
+                        out.println("\tconfig.vm.define :" + nodo.getNombre() + " do |" + nodo.getNombre() + "|");
+                        out.println("\t\t" + nodo.getNombre() + ".vm.box = \"" + nodo.getMaquinaVirtual().getSistemaOperativo().getNombreBox() + "\"");
+                        out.println("\t\t" + nodo.getNombre() + ".vm.network :private_network, ip: \"" + nodo.getIpPrivada() + "\"");
+                        out.println("\t\t" + nodo.getNombre() + ".vm.network \"public_network\", :bridge => \"" + nodo.getInterfazPuente() + "\", ip:\"" + nodo.getIpPublica() + "\", :auto_config => \"false\", :netmask => \"" + nodo.getMascaraRed() + "\"");
+                        out.println("\t\t" + nodo.getNombre() + ".vm.provider :virtualbox do |vb|");
+                        out.println("\t\t\t vb.customize[\"modifyvm\", :id, \"--memory\", \"" + nodo.getCantidadMemoria() + "\",\"--cpus\", \"" + nodo.getCantidadCPU() + "\", \"--name\", \"" + nodo.getNombre() + "\" ]");
                         out.println("\t\tend");
-                        out.println("\tend");                 
+                        out.println("\tend");
                     }
 
                 }
@@ -894,7 +1001,7 @@ public class EntryPoint
         {
             System.out.println("Error en el flujo");
         }
-        
+
         return false;
 
     }
