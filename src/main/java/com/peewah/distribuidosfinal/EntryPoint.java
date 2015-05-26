@@ -590,6 +590,77 @@ public class EntryPoint
             return nodos;
         }, new JsonTransformer());
 
+        //Eliminar maquina virtual y aplicaciones asociadas
+        delete("/delete-vm", (Request rqst, Response rspns) ->
+        {
+            String usernameLogged = rqst.queryParams("usernameLogged");
+            String nombreMaquina = rqst.queryParams("nombreMaquina");
+
+            MaquinaVirtual buscada = null;
+            List<MaquinaApp> maquinaApp;
+
+            //Verificar que los parametros recibidos no son null
+            if (usernameLogged != null && !usernameLogged.equals("") && nombreMaquina != null && !nombreMaquina.equals(""))
+            {
+
+                Usuario user = usuarioDao.queryForId(usernameLogged);
+
+                if (user != null)
+                {
+                    //Obtener las maquinas virtuales del usuario
+                    List<MaquinaVirtual> maquinasVirtuales = listMachines(usernameLogged);
+
+                    //Buscar la maquina virtual a eliminar dentro de las maquinas del usuario
+                    for (MaquinaVirtual m : maquinasVirtuales)
+                    {
+                        if (m.getNombre().equals(nombreMaquina))
+                        {
+                            buscada = m;
+                        }
+                    }
+
+                    //Verificar que la maquina buscada pertenece al usuario en cuestion
+                    if (buscada != null)
+                    {
+                        //Obtener la lista de aplicaciones de la maquina virtual
+                        QueryBuilder<MaquinaApp, String> queryBuilder = maquinaAppDao.queryBuilder();
+                        queryBuilder.where().eq(MaquinaApp.MACHINE_FIELD, buscada.getId());
+                        PreparedQuery<MaquinaApp> preparedQuery = queryBuilder.prepare();
+
+                        maquinaApp = maquinaAppDao.query(preparedQuery);
+
+                        if (maquinaApp.size() > 0)
+                        {
+                            //Eliminar las aplicaciones 
+                            for (MaquinaApp i : maquinaApp)
+                            {
+                                maquinaAppDao.delete(i);
+                            }
+
+                            maquinaVirtualDao.delete(buscada);
+
+                            //Eliminar carpeta de la maquina virtual
+                            FileUtils.deleteDirectory(new File("/tmp/" + usernameLogged + "/" + nombreMaquina));
+
+                            return true;
+                        } else
+                        {
+                            System.out.println("No existen aplicaciones para la maquina virtual en cuestion");
+                        }
+                    }
+                } else
+                {
+                    System.out.println("EL usuario loggeado no existe");
+                }
+
+            } else
+            {
+                System.out.println("No pueden haber campos vacios");
+            }
+
+            return false;
+        });
+
         // Cargar datos de prueba
         get("/add-testdata", (Request rqst, Response rspns) ->
         {
