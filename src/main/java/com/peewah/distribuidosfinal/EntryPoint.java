@@ -40,7 +40,6 @@ import spark.Request;
 import spark.Response;
 import static spark.Spark.after;
 import static spark.Spark.before;
-import static spark.Spark.delete;
 import static spark.Spark.get;
 import static spark.Spark.options;
 import static spark.Spark.post;
@@ -323,7 +322,7 @@ public class EntryPoint
         });
 
         //Eliminar usuario y sus máquinas virtuales asociadas
-        delete("/delete-user", (Request rqst, Response rspns) ->
+        post("/delete-user", (Request rqst, Response rspns) ->
         {
             String userLogged = rqst.queryParams("usernameLogged");
             String nombreUsuario = rqst.queryParams("usernameToDelete");
@@ -591,7 +590,7 @@ public class EntryPoint
         }, new JsonTransformer());
 
         //Eliminar maquina virtual y aplicaciones asociadas
-        delete("/delete-vm", (Request rqst, Response rspns) ->
+        post("/delete-vm", (Request rqst, Response rspns) ->
         {
             String usernameLogged = rqst.queryParams("usernameLogged");
             String nombreMaquina = rqst.queryParams("nombreMaquina");
