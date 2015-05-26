@@ -661,6 +661,174 @@ public class EntryPoint
             return false;
         });
 
+        //Correr máquina virtual
+        post("/run-vm", (Request rqst, Response rspns) ->
+        {
+
+            String username = rqst.queryParams("userLogged");
+            String nombreMaquina = rqst.queryParams("nombreMaquina");
+
+            MaquinaVirtual maquinaBuscada = null;
+
+            if (username != null && nombreMaquina != null && !nombreMaquina.equals("") && !nombreMaquina.equals(""))
+            {
+                Usuario user = usuarioDao.queryForId(username);
+
+                if (user != null)
+                {
+                    //Listar máquinas virtuales del usuario
+                    List<MaquinaVirtual> maquinasVirtuales = listMachines(username);
+
+                    for (MaquinaVirtual maquina : maquinasVirtuales)
+                    {
+                        if (maquina.getNombre().equals(nombreMaquina))
+                        {
+                            maquinaBuscada = maquina;
+                        }
+                    }
+
+                    if (maquinaBuscada != null)
+                    {
+                        try
+                        {
+                            //Comando para ejecutar el comando vagrant up en el shell 
+                            ProcessBuilder pb = new ProcessBuilder("vagrant up");
+                            Process p;
+                            String path = "/tmp/" + username + "/" + nombreMaquina;
+                            File file = new File(path);
+
+                            //Validar si es un directorio
+                            if (file.exists() && file.isDirectory())
+                            {
+                                pb.directory(file);
+                                p = pb.start();
+                                return true;
+                            }
+
+                        } catch (IOException ex)
+                        {
+                        }
+                    }
+
+                }
+
+            }
+
+            return false;
+        });
+
+        //Destruir máquina virtual
+        post("/destroy-vm", (Request rqst, Response rspns) ->
+        {
+
+            String username = rqst.queryParams("userLogged");
+            String nombreMaquina = rqst.queryParams("nombreMaquina");
+
+            MaquinaVirtual maquinaBuscada = null;
+
+            if (username != null && nombreMaquina != null && !nombreMaquina.equals("") && !nombreMaquina.equals(""))
+            {
+                Usuario user = usuarioDao.queryForId(username);
+
+                if (user != null)
+                {
+                    //Listar máquinas virtuales del usuario
+                    List<MaquinaVirtual> maquinasVirtuales = listMachines(username);
+
+                    for (MaquinaVirtual maquina : maquinasVirtuales)
+                    {
+                        if (maquina.getNombre().equals(nombreMaquina))
+                        {
+                            maquinaBuscada = maquina;
+                        }
+                    }
+
+                    if (maquinaBuscada != null)
+                    {
+                        try
+                        {
+                            //Comando para ejecutar el comando vagrant up en el shell 
+                            ProcessBuilder pb = new ProcessBuilder("vagrant destroy -f");
+                            Process p;
+                            String path = "/tmp/" + username + "/" + nombreMaquina;
+                            File file = new File(path);
+
+                            //Validar si es un directorio
+                            if (file.exists() && file.isDirectory())
+                            {
+                                pb.directory(file);
+                                p = pb.start();
+                                return true;
+                            }
+
+                        } catch (IOException ex)
+                        {
+                        }
+                    }
+
+                }
+
+            }
+
+            return false;
+        });
+
+        //Reanudar máquina virtual
+        post("/resume-vm", (Request rqst, Response rspns) ->
+        {
+
+            String username = rqst.queryParams("userLogged");
+            String nombreMaquina = rqst.queryParams("nombreMaquina");
+
+            MaquinaVirtual maquinaBuscada = null;
+
+            if (username != null && nombreMaquina != null && !nombreMaquina.equals("") && !nombreMaquina.equals(""))
+            {
+                Usuario user = usuarioDao.queryForId(username);
+
+                if (user != null)
+                {
+                    //Listar máquinas virtuales del usuario
+                    List<MaquinaVirtual> maquinasVirtuales = listMachines(username);
+
+                    for (MaquinaVirtual maquina : maquinasVirtuales)
+                    {
+                        if (maquina.getNombre().equals(nombreMaquina))
+                        {
+                            maquinaBuscada = maquina;
+                        }
+                    }
+
+                    if (maquinaBuscada != null)
+                    {
+                        try
+                        {
+                            //Comando para ejecutar el comando vagrant up en el shell 
+                            ProcessBuilder pb = new ProcessBuilder("vagrant resume");
+                            Process p;
+                            String path = "/tmp/" + username + "/" + nombreMaquina;
+                            File file = new File(path);
+
+                            //Validar si es un directorio
+                            if (file.exists() && file.isDirectory())
+                            {
+                                pb.directory(file);
+                                p = pb.start();
+                                return true;
+                            }
+
+                        } catch (IOException ex)
+                        {
+                        }
+                    }
+
+                }
+
+            }
+
+            return false;
+        });
+
         // Cargar datos de prueba
         get("/add-testdata", (Request rqst, Response rspns) ->
         {
@@ -1015,7 +1183,7 @@ public class EntryPoint
      */
     public static boolean insertarNodoEnVagrantFile(String rutaCarpetaVagrantfile, Nodo nodo)
     {
-        FileInputStream fis = null;
+        FileInputStream fis;
         try
         {
             //Archivo de entrada
@@ -1034,7 +1202,7 @@ public class EntryPoint
                 FileOutputStream fos = new FileOutputStream(tempFile);
                 PrintWriter out = new PrintWriter(fos);
 
-                String thisLine = "";
+                String thisLine;
                 while ((thisLine = in.readLine()) != null)
                 {
                     //Escribir linea del archivo anterior
@@ -1074,6 +1242,38 @@ public class EntryPoint
         }
 
         return false;
+
+    }
+
+    /**
+     * Este método retorna la salida de un proceso como un String. El proceso
+     * corre en un hilo, este método captura la salida del proceso durante la
+     * ejecución del hilo.
+     *
+     * @param p Proceso que ejecuta un comando en el shell
+     * @return Salida del proceso representado como un String
+     */
+    public static String processOutputToString(Process p)
+    {
+        // Redireccionar la salida del Process Builder a un String
+        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        StringBuilder builder = new StringBuilder();
+        String line;
+        try
+        {
+            while ((line = reader.readLine()) != null)
+            {
+                builder.append(line);
+                builder.append(System.getProperty("line.separator"));
+            }
+        } catch (IOException ex)
+        {
+            return "Error procesando la tarea";
+        }
+
+        //Obtener resultado y retornarlo
+        String result = builder.toString();
+        return result;
 
     }
 }
