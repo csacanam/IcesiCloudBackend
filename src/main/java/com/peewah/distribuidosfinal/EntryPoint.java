@@ -636,16 +636,18 @@ public class EntryPoint
                                 maquinaAppDao.delete(i);
                             }
 
-                            maquinaVirtualDao.delete(buscada);
-
-                            //Eliminar carpeta de la maquina virtual
-                            FileUtils.deleteDirectory(new File("/tmp/" + usernameLogged + "/" + nombreMaquina));
-
-                            return true;
                         } else
                         {
                             System.out.println("No existen aplicaciones para la maquina virtual en cuestion");
                         }
+
+                        //Eliminar máquina virtual
+                        maquinaVirtualDao.delete(buscada);
+
+                        //Eliminar carpeta de la maquina virtual
+                        FileUtils.deleteDirectory(new File("/tmp/" + usernameLogged + "/" + nombreMaquina));
+                        return true;
+
                     }
                 } else
                 {
