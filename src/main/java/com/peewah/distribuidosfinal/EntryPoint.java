@@ -894,6 +894,11 @@ public class EntryPoint
             return false;
 
         });
+           
+        //Listar todas las aplicaciones
+        get("/list-apps-all", (Request rqst, Response rspns) -> {
+            return appDao.queryForAll();
+        }, new JsonTransformer());
 
         // Cargar datos de prueba
         get("/add-testdata", (Request rqst, Response rspns) ->
