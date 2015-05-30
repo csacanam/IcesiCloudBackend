@@ -35,6 +35,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
 import spark.Request;
 import spark.Response;
@@ -511,6 +513,7 @@ public class EntryPoint
                         if (maquina.getNombre().equals(machineName))
                         {
                             buscada = maquina;
+                            break;
                         }
                     }
 
@@ -615,6 +618,7 @@ public class EntryPoint
                         if (m.getNombre().equals(nombreMaquina))
                         {
                             buscada = m;
+                            break;
                         }
                     }
 
@@ -685,6 +689,7 @@ public class EntryPoint
                         if (maquina.getNombre().equals(nombreMaquina))
                         {
                             maquinaBuscada = maquina;
+                            break;
                         }
                     }
 
@@ -741,6 +746,7 @@ public class EntryPoint
                         if (maquina.getNombre().equals(nombreMaquina))
                         {
                             maquinaBuscada = maquina;
+                            break;
                         }
                     }
 
@@ -797,6 +803,7 @@ public class EntryPoint
                         if (maquina.getNombre().equals(nombreMaquina))
                         {
                             maquinaBuscada = maquina;
+                            break;
                         }
                     }
 
@@ -828,6 +835,64 @@ public class EntryPoint
             }
 
             return false;
+        });
+
+        //Asociar app a una máquina virtual
+        post("/associate-app", (Request rqst, Response rspns) ->
+        {
+            String username = rqst.queryParams("username");
+            String nombreMaquina = rqst.queryParams("nombreMaquina");
+            String nombreApp = rqst.queryParams("nombreApp");
+
+            Usuario user = usuarioDao.queryForId(username);
+
+            if (user != null)
+            {
+                //Verificar si el usuario tiene la máquina
+                List<MaquinaVirtual> maquinas = listMachines(username);
+
+                MaquinaVirtual buscada = null;
+
+                for (MaquinaVirtual maquina : maquinas)
+                {
+                    if (maquina.getNombre().equals(nombreMaquina))
+                    {
+                        buscada = maquina;
+                        break;
+                    }
+                }
+
+                if (buscada != null)
+                {
+                    App app = appDao.queryForId(nombreApp);
+
+                    //Verificar si la app existe y si está para el mismo sistema operativo que tiene la máquina
+                    if (app != null && app.getSistemaOperativo().getNombre().equals(buscada.getSistemaOperativo().getNombre()))
+                    {
+                        //Agregar a la base de datos
+                        MaquinaApp maquinaApp = new MaquinaApp(buscada, app);
+                        maquinaAppDao.create(maquinaApp);
+
+                        //Crear registro en el Vagrantfile
+                        String path = "/tmp/" + username + "/" + nombreMaquina;
+                        insertarCookbooksANodos(new ArrayList(buscada.getNodos()), app, path);
+
+                        return true;
+                    } else
+                    {
+                        System.out.println("La app no existe");
+                    }
+                } else
+                {
+                    System.out.println("No se encontró la máquina en la lista del usuario");
+                }
+            } else
+            {
+                System.out.println("El usuario no existe");
+            }
+
+            return false;
+
         });
 
         // Cargar datos de prueba
@@ -1217,7 +1282,11 @@ public class EntryPoint
                         out.println("\t\t" + nodo.getNombre() + ".vm.network :private_network, ip: \"" + nodo.getIpPrivada() + "\"");
                         out.println("\t\t" + nodo.getNombre() + ".vm.network \"public_network\", :bridge => \"" + nodo.getInterfazPuente() + "\", ip:\"" + nodo.getIpPublica() + "\", :auto_config => \"false\", :netmask => \"" + nodo.getMascaraRed() + "\"");
                         out.println("\t\t" + nodo.getNombre() + ".vm.provider :virtualbox do |vb|");
-                        out.println("\t\t\t vb.customize[\"modifyvm\", :id, \"--memory\", \"" + nodo.getCantidadMemoria() + "\",\"--cpus\", \"" + nodo.getCantidadCPU() + "\", \"--name\", \"" + nodo.getNombre() + "\" ]");
+                        out.println("\t\t\tvb.customize[\"modifyvm\", :id, \"--memory\", \"" + nodo.getCantidadMemoria() + "\",\"--cpus\", \"" + nodo.getCantidadCPU() + "\", \"--name\", \"" + nodo.getNombre() + "\" ]");
+                        out.println("\t\tend");
+                        out.println("\t\t" + nodo.getNombre() + ".vm.provision :chef_solo do |chef|");
+                        out.println("\t\t\tchef.cookbooks_path = \"cookbooks\"");
+                        out.println("\t\t\tchef.json = " + nodo.getParametrosJSON());
                         out.println("\t\tend");
                         out.println("\tend");
                     }
@@ -1242,6 +1311,97 @@ public class EntryPoint
             System.out.println("Error en el flujo");
         }
 
+        return false;
+
+    }
+
+    /**
+     * Permite insertar los cookbooks de una app en un Vagrantfile
+     * @param nodos Lista de nodos a las que se les agregarán los cookbooks
+     * @param app Aplicación que se instalará
+     * @param rutaCarpetaVagrantfile Ruta de la carpeta donde se encuentra el Vagrantfile
+     * @return True si los pudo agregar y false en caso contrario
+     */
+    public static boolean insertarCookbooksANodos(List<Nodo> nodos, App app, String rutaCarpetaVagrantfile)
+    {
+        try
+        {
+            //Listar CookbookApps
+            QueryBuilder<CookbookApp, String> queryBuilder = cookbookAppDao.queryBuilder();
+            queryBuilder.where().eq(CookbookApp.APP_FIELD, app.getNombre());
+
+            PreparedQuery<CookbookApp> preparedQuery = queryBuilder.prepare();
+
+            List<CookbookApp> cookbooksApp = cookbookAppDao.query(preparedQuery);
+
+            //Obtener Cookbooks a partir de los CookbookApps
+            List<Cookbook> cookbooks = new ArrayList();
+
+            cookbooksApp.stream().forEach((cookbookApp) ->
+            {
+                cookbooks.add(cookbookApp.getCookbook());
+            });
+
+            FileInputStream fis;
+            //Archivo de entrada
+            File inFile = new File(rutaCarpetaVagrantfile + "/Vagrantfile");
+
+            if (inFile.exists() && inFile.isFile())
+            {
+                //Archivo temporal
+                File tempFile = new File(rutaCarpetaVagrantfile + "/$$$$$.tmp");
+
+                //Input
+                fis = new FileInputStream(inFile);
+                BufferedReader in = new BufferedReader(new InputStreamReader(fis));
+
+                //Output
+                FileOutputStream fos = new FileOutputStream(tempFile);
+                PrintWriter out = new PrintWriter(fos);
+
+                String thisLine;
+                while ((thisLine = in.readLine()) != null)
+                {
+                    //Escribir linea del archivo anterior
+                    out.println(thisLine);
+
+                    //Agregar cada cookbook a cada uno de los nodos
+                    for (Nodo nodo : nodos)
+                    {
+                        //Si encuentra el inicio de los cookbooks del nodo
+                        if (thisLine.toLowerCase().contains(nodo.getNombre() + ".vm.provision :chef_solo do |chef|".toLowerCase()))
+                        {
+                            //Agregar cookbooks
+                            cookbooks.stream().forEach((cookbook) ->
+                            {
+                                out.println("\t\t\tchef.add_recipe \""+ cookbook.getRuta() + "\"");
+                            });
+                            break;
+                        }
+                    }
+
+                }
+
+                out.flush();
+                out.close();
+                in.close();
+
+                inFile.delete();
+                tempFile.renameTo(inFile);
+
+                return true;
+            }
+
+        } catch (SQLException ex)
+        {
+            System.out.println("Error accediendo a la base de datos");
+        } catch (FileNotFoundException ex)
+        {
+            System.out.println("Error encontrando el archivo");
+        } catch (IOException ex)
+        {
+            System.out.println("Error en el flujo de información");
+        }
         return false;
 
     }

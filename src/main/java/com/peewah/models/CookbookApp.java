@@ -16,6 +16,10 @@ import com.j256.ormlite.table.DatabaseTable;
 public class CookbookApp
 {
 
+    //Nombres de los campos
+    public static final String APP_FIELD = "app_id";
+    public static final String MACHINE_FIELD = "maquina_id";
+
     @DatabaseField(generatedIdSequence = "ca_seq")
     private int id;
 
@@ -65,5 +69,4 @@ public class CookbookApp
         this.id = id;
     }
 
-    
 }
