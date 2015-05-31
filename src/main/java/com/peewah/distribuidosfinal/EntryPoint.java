@@ -993,31 +993,31 @@ public class EntryPoint
 
         // 3. Crear máquinas virtuales
         MaquinaVirtual maquinaUnoCS = new MaquinaVirtual();
-        maquinaUnoCS.setNombre("Maquina Uno");
+        maquinaUnoCS.setNombre("MaquinaUno");
         maquinaUnoCS.setSistemaOperativo(sistemaCentOS);
         maquinaUnoCS.setUsername(usuarioUno);
         maquinaVirtualDao.createIfNotExists(maquinaUnoCS);
 
         MaquinaVirtual maquinaDosCS = new MaquinaVirtual();
-        maquinaDosCS.setNombre("Maquina Dos");
+        maquinaDosCS.setNombre("MaquinaDos");
         maquinaDosCS.setSistemaOperativo(sistemaCentOS);
         maquinaDosCS.setUsername(usuarioUno);
         maquinaVirtualDao.createIfNotExists(maquinaDosCS);
 
         MaquinaVirtual maquinaTresCS = new MaquinaVirtual();
-        maquinaTresCS.setNombre("Maquina Tres");
+        maquinaTresCS.setNombre("MaquinaTres");
         maquinaTresCS.setSistemaOperativo(sistemaUbuntu);
         maquinaTresCS.setUsername(usuarioUno);
         maquinaVirtualDao.createIfNotExists(maquinaTresCS);
 
         MaquinaVirtual maquinaUnoLC = new MaquinaVirtual();
-        maquinaUnoLC.setNombre("Maquina Uno");
+        maquinaUnoLC.setNombre("MaquinaUno");
         maquinaUnoLC.setSistemaOperativo(sistemaCentOS);
         maquinaUnoLC.setUsername(usuarioDos);
         maquinaVirtualDao.createIfNotExists(maquinaUnoLC);
 
         MaquinaVirtual maquinaDosLC = new MaquinaVirtual();
-        maquinaDosLC.setNombre("Maquina Dos");
+        maquinaDosLC.setNombre("MaquinaDos");
         maquinaDosLC.setSistemaOperativo(sistemaCentOS);
         maquinaDosLC.setUsername(usuarioDos);
         maquinaVirtualDao.createIfNotExists(maquinaDosLC);
