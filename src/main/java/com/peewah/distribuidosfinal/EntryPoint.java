@@ -1290,7 +1290,7 @@ public class EntryPoint
                         out.println("\t\t\tvb.customize[\"modifyvm\", :id, \"--memory\", \"" + nodo.getCantidadMemoria() + "\",\"--cpus\", \"" + nodo.getCantidadCPU() + "\", \"--name\", \"" + nodo.getNombre() + "\" ]");
                         out.println("\t\tend");
                         out.println("\t\t" + nodo.getNombre() + ".vm.provision :chef_solo do |chef|");
-                        out.println("\t\t\tchef.cookbooks_path = \"cookbooks\"");
+                        out.println("\t\t\tchef.cookbooks_path = \"../../cookbooks\"");
                         out.println("\t\t\tchef.json = " + nodo.getParametrosJSON());
                         out.println("\t\tend");
                         out.println("\tend");
